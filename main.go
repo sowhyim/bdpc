@@ -1,9 +1,11 @@
 package main
 
 import (
-	"bdpc/function"
 	"fmt"
+	"github.com/Luxurioust/excelize"
 	"net/http"
+	"sowhy/bdpc/function"
+	"strconv"
 )
 
 var (
@@ -12,34 +14,34 @@ var (
 	cookie    = &http.Cookie{Name: "BDUSS", Value: "d6SmVaY3JncXV0bjhwR1hoWkc4MjhWVFlIaThSeTZTaThGZEJ2Yi05QVE5R3hjQVFBQUFBJCQAAAAAAAAAAAEAAABGQ7LLc29Cb3lfc29naXJsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBnRVwQZ0VcdF"}
 )
 
-func Decrypt(key string,data function.Bddata){
-
-	for _,val := range data.Data.UserIndexes{
-		var a []uint8
-		var alldata []uint8
-		for i:=0;i<len(key)/2;i++{
-			a[key[i]]= key[len(key)/2+i]
-		}
-		for i:=0;i<len(val.All.Data);i++{
-			alldata=append(alldata,a[val.All.Data[i]])
-		}
-		fmt.Println(alldata)
-	}
-}
-
 func main() {
 	for {
-		jingdian, Provinces, startdate, enddate, Provincesmode := function.GetUserScan()
+		jingdian, area, Provinces, startdate, enddate := function.GetUserScan()
 
-		var area []string
-		area = function.GetNumber(Provinces, Provincesmode)
-		fmt.Println(jingdian, Provinces, startdate, enddate, Provincesmode, area)
+		fmt.Println("输入的数据为", jingdian, Provinces, startdate, enddate)
 		for _, jd := range jingdian {
+			fmt.Println("开始抓取“", jd, "”的数据")
+			xlsx := excelize.NewFile()
+			xlsx.SetCellValue("Sheet1", "A1", jd)
+			date := function.SetDate(startdate, enddate)
+			datecount := 2
+			for _, val := range date {
+				axit := "A" + strconv.Itoa(datecount)
+				xlsx.SetCellValue("Sheet1", axit, val)
+				datecount++
+			}
+
+			count := 2
 			for _, p := range area {
 				data := function.GetData(dataurl, jd, p, startdate, enddate, cookie)
-				key:=function.GetKey(unipidurl,data,cookie)
-				Decrypt(key,data)
+				key := function.GetKey(unipidurl, data, cookie)
+				function.Decrypt(key, p, xlsx, count, data)
+				count++
 			}
+			xlsx.SaveAs(jd + ".xlsx")
+			fmt.Printf("--------------------------------------%s抓取完毕！--------------------------------------\n",jd)
 		}
+		fmt.Println("------------------------------------------抓取完毕！------------------------------------------")
+		fmt.Println("------------------------------------------我是分割线------------------------------------------")
 	}
 }
